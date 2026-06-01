@@ -72,63 +72,27 @@ export default function App() {
     comentario: ''
   });
 
-  // Load menu data
+  // Load menu data directly from local JSON to prevent any deploy-time network/CORS hangs
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [cats, dishes] = await Promise.all([
-          fetchSheetData<SheetCategory>('Categorías'),
-          fetchSheetData<SheetDish>('Platos')
-        ]);
+    const formattedCategories: Category[] = FALLBACK_CATEGORIES.map(c => ({
+      id: c.nombre.toLowerCase().replace(/\s+/g, '-'),
+      nombre: c.nombre,
+      items: FALLBACK_DISHES
+        .filter(d => d.categoría === c.nombre)
+        .map(d => ({
+          nombre: d['nombre del plato'],
+          descripcion: d.descripción,
+          precio: d.precio,
+          imagen: d['URL de imagen'] || undefined,
+          categoría: d.categoría
+        }))
+    })).filter(cat => cat.items.length > 0);
 
-        const finalCats = cats.length > 0 ? cats : FALLBACK_CATEGORIES;
-        const finalDishes = dishes.length > 0 ? dishes : FALLBACK_DISHES;
-
-        const formattedCategories: Category[] = finalCats.map(c => ({
-          id: c.nombre.toLowerCase().replace(/\s+/g, '-'),
-          nombre: c.nombre,
-          items: finalDishes
-            .filter(d => d.categoría === c.nombre)
-            .map(d => ({
-              nombre: d['nombre del plato'],
-              descripcion: d.descripción,
-              precio: d.precio,
-              imagen: d['URL de imagen'] || undefined,
-              categoría: d.categoría
-            }))
-        })).filter(cat => cat.items.length > 0);
-
-        setCategories(formattedCategories);
-        if (formattedCategories.length > 0) {
-          setActiveCategory(formattedCategories[0].id);
-        }
-      } catch (error) {
-        console.error("Error loading data:", error);
-        // Fallback to static data on error
-        const formattedCategories: Category[] = FALLBACK_CATEGORIES.map(c => ({
-          id: c.nombre.toLowerCase().replace(/\s+/g, '-'),
-          nombre: c.nombre,
-          items: FALLBACK_DISHES
-            .filter(d => d.categoría === c.nombre)
-            .map(d => ({
-              nombre: d['nombre del plato'],
-              descripcion: d.descripción,
-              precio: d.precio,
-              imagen: d['URL de imagen'] || undefined,
-              categoría: d.categoría
-            }))
-        })).filter(cat => cat.items.length > 0);
-
-        setCategories(formattedCategories);
-        if (formattedCategories.length > 0) {
-          setActiveCategory(formattedCategories[0].id);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
+    setCategories(formattedCategories);
+    if (formattedCategories.length > 0) {
+      setActiveCategory(formattedCategories[0].id);
+    }
+    setLoading(false);
   }, []);
 
   const cartCount = useMemo(() => cart.reduce((acc, item) => acc + item.cantidad, 0), [cart]);
